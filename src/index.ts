@@ -1,3 +1,5 @@
+// src/index.ts
+
 // Panggil dotenv.config() paling pertama
 import dotenv from 'dotenv';
 dotenv.config();
@@ -7,26 +9,26 @@ import express, { Express, Request, Response } from 'express';
 import { Pool } from 'pg';
 import cors from 'cors';
 
-// =============================================================================
-//  1. INISIALISASI DAN KONFIGURASI
-// =============================================================================
-
 const app: Express = express();
 
-app.use(cors());
+// --- PERUBAHAN UTAMA DI SINI ---
+// Ganti cors() dengan objek konfigurasi
+app.use(cors({
+  origin: 'https://ig-clone-fe.vercel.app' // Ganti dengan URL frontend Anda jika berbeda
+}));
+// --- AKHIR PERUBAHAN ---
+
 app.use(express.json());
 
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL, // Gunakan connection string dari Vercel
+  connectionString: process.env.POSTGRES_URL, 
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// =============================================================================
-//  2. FUNGSI UNTUK PERSIAPAN DATABASE
-// =============================================================================
-
+// ... sisa kode Anda tetap sama ...
+// (prepareDatabase, app.get, app.post, export default app)
 const prepareDatabase = async () => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS user_logins (
@@ -45,12 +47,7 @@ const prepareDatabase = async () => {
   }
 };
 
-// Panggil fungsi ini sekali saat server dimulai
 prepareDatabase();
-
-// =============================================================================
-//  3. DEFINISI ENDPOINT API
-// =============================================================================
 
 app.get('/api', (req: Request, res: Response) => {
     res.send('Hello from Express backend!');
@@ -74,10 +71,4 @@ app.post('/api/simpan-data', async (req: Request, res: Response) => {
   }
 });
 
-// =============================================================================
-//  4. EKSPOR APLIKASI UNTUK VERCEL
-// =============================================================================
-
-// Hapus seluruh blok app.listen() dan startApp()
-// Cukup ekspor aplikasi Express Anda. Vercel akan menanganinya dari sini.
 export default app;
