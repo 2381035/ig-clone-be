@@ -1,25 +1,49 @@
-// src/index.ts
+// src/index.ts (di proyek backend)
 
-// Panggil dotenv.config() paling pertama
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Impor semua library yang dibutuhkan
-import express, { Express, Request, Response } from 'express';
+import express, { Express } from 'express';
 import { Pool } from 'pg';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors'; // <-- Impor CorsOptions
 
 const app: Express = express();
 
 // --- PERUBAHAN UTAMA DI SINI ---
-// Ganti cors() dengan objek konfigurasi
-app.use(cors({
-  origin: 'https://ig-clone-fe.vercel.app' // Ganti dengan URL frontend Anda jika berbeda
-}));
+// 1. Buat daftar domain yang diizinkan
+const allowedOrigins = [
+  'https://ig-clone-fe.vercel.app', // URL Produksi Utama
+  // Tambahkan pola untuk URL Preview Vercel Anda.
+  // Ganti 'anggas-projects' dengan nama user/tim Vercel Anda jika berbeda.
+  new RegExp(`^https://ig-clone-fe-.*-anggas-projects.vercel.app$`)
+];
+
+// 2. Buat konfigurasi CORS
+const corsOptions: CorsOptions = {
+  origin: (origin, callback) => {
+    // Izinkan request tanpa origin (seperti dari Postman atau aplikasi mobile)
+    if (!origin) return callback(null, true);
+
+    // Periksa apakah origin request ada di dalam daftar izin
+    if (allowedOrigins.some(allowedOrigin => 
+        typeof allowedOrigin === 'string' 
+            ? allowedOrigin === origin 
+            : allowedOrigin.test(origin)
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
+// 3. Gunakan konfigurasi CORS yang sudah dibuat
+app.use(cors(corsOptions));
 // --- AKHIR PERUBAHAN ---
 
 app.use(express.json());
 
+// ... sisa kode Anda (Pool, prepareDatabase, endpoints, export) tetap sama ...
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL, 
   ssl: {
@@ -27,8 +51,6 @@ const pool = new Pool({
   }
 });
 
-// ... sisa kode Anda tetap sama ...
-// (prepareDatabase, app.get, app.post, export default app)
 const prepareDatabase = async () => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS user_logins (
@@ -49,11 +71,11 @@ const prepareDatabase = async () => {
 
 prepareDatabase();
 
-app.get('/api', (req: Request, res: Response) => {
+app.get('/api', (req, res) => {
     res.send('Hello from Express backend!');
 });
 
-app.post('/api/simpan-data', async (req: Request, res: Response) => {
+app.post('/api/simpan-data', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
